@@ -1,0 +1,122 @@
+import { FaSave, FaSpinner } from "react-icons/fa";
+import toast from "react-hot-toast";
+export default function UserForm({
+  form,
+  setForm,
+  editingUser,
+  setEditingUser,
+  saving,
+  setSaving,
+  refresh,
+}) {
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+
+    const method = editingUser ? "PUT" : "POST";
+    const url = editingUser ? `/api/users/${editingUser.id}` : "/api/users";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) toast.error(data.error || "Failed to save user");
+      else {
+        setForm({ username: "", password: "", delete_password: "", role: "", status: "", account_expired_at: null, form_code: "" });
+        setEditingUser(null);
+        await refresh();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">
+      <h2 className="text-xl font-semibold mb-4 text-gray-700">
+        {editingUser ? "Edit User" : "Add New User"}
+      </h2>
+      <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <input
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          placeholder="Username"
+          value={form.username}
+          onChange={(e) => setForm({ ...form, username: e.target.value })}
+          required
+        />
+
+        <input
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          placeholder="Password"
+          type="password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          required={!editingUser}
+        />
+
+        <input
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          placeholder="Delete Password"
+          type="text"
+          value={form.delete_password}
+          onChange={(e) => setForm({ ...form, delete_password: e.target.value })}
+          required={!editingUser}
+        />
+
+        <select
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          value={form.role}
+          onChange={(e) => setForm({ ...form, role: e.target.value })}
+        >
+          <option value="">Select Role</option>
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+
+        <select
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          value={form.status}
+          onChange={(e) => setForm({ ...form, status: e.target.value })}
+        >
+          <option value="">Select Account Status</option>
+          <option value="Enabled">Enabled</option>
+          <option value="Disabled">Disabled</option>
+        </select>
+        {/* Expired Date */}
+        <input
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          type="datetime-local"
+          value={form.account_expired_at ? form.account_expired_at.split("T")[0] : ""}
+          onChange={(e) => setForm({ ...form, account_expired_at: e.target.value })}
+        />
+        
+        <input
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+          placeholder="Form Code"
+          value={form.form_code}
+          onChange={(e) => setForm({ ...form, form_code: e.target.value })}
+        />
+
+
+
+        <div className="md:col-span-2 flex justify-end">
+          <button
+            type="submit"
+            disabled={saving}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg flex items-center gap-2 shadow transition"
+          >
+            {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+            {editingUser ? "Update User" : "Create User"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
