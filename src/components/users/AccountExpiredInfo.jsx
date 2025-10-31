@@ -12,7 +12,7 @@ export default function AccountExpiredInfo() {
     if (user?.account_expired_at) {
       setExpiredAt(new Date(user.account_expired_at));
     }
-    console.log("User data in AccountExpiredInfo: Called");
+    // console.log("User data in AccountExpiredInfo: Called");
   }, [user]);
 
   // Calculate time left dynamically

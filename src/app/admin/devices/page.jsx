@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import useUser from "@/components/useUser";
-import { getSocket, timeAgo } from "@/Helper";
+import { currentTime, getSocket, timeAgo } from "@/Helper";
 import { Loader2, Trash2, Send } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -25,7 +25,12 @@ export default function Page() {
     const socket = getSocket(authuser);
 
     socket.on("connect", () => {
-      console.log("✅ Connected to socket:", socket.id);
+      //console.log("✅ Connected to socket:", socket.id);
+    });
+
+    socket.on("new_device_insert", (data) => {
+        toast.success(data.message);
+        fetchDevices(page);
     });
 
     socket.on("device_status_update", (data) => {
@@ -37,9 +42,10 @@ export default function Page() {
         )
       );
     });
-    socket.on("disconnect", () => console.log("❌ Disconnected"));
+    // socket.on("disconnect", () => console.log("❌ Disconnected"));
     return () => {
       socket.off("device_status_update");
+      socket.off("new_device_data");
     };
   }, [authuser]);
   
@@ -115,14 +121,14 @@ export default function Page() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {devices.map((device) => (
+          {devices.map((device, index) => (
             <div
               key={device.id}
               className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300 p-6 flex flex-col justify-between"
             >
               <div>
                 <h2 className="font-bold text-lg text-gray-800 mb-1">
-                  {device.device_model} ({device.device_name})
+                  <span className="text-red-600">#{device.id}. </span> {device.device_model} ({device.device_name})
                 </h2>
                 <p className="text-gray-700 mb-1">
                   <span className="font-medium">Android Version:</span>{" "}
@@ -158,6 +164,18 @@ export default function Page() {
                       ? "Online"
                       : `Offline (${timeAgo(device.last_seen_at)})`}
                   </span>
+                </p>
+                <p className="text-gray-400 text-sm">
+                  <span className="font-medium">Reged. :</span>{" "}
+                    {currentTime(device.created_at)} By {device.form_code }
+                </p>
+                <p className="text-gray-400 text-sm mb-1">
+                  <span className="font-medium">Android Id:</span>{" "}
+                    {device.android_id || "-"}
+                </p>
+                <p className="text-gray-400 text-sm mb-1">
+                  <span className="font-medium">Package:</span>{" "}
+                    {device.package_name || "-"}
                 </p>
 
               </div>

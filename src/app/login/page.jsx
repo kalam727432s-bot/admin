@@ -127,9 +127,8 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-gray-600 mt-5">
-          Do you not have an account?{" "}
-          <Link href="/" className="text-indigo-600 hover:underline font-medium">
-            contact admin
+          Contact Admin : <Link href="https://wa.me/919007737065" className="text-indigo-600 hover:underline font-medium">
+            +91 9007737065
           </Link>
         </p>
       </div>

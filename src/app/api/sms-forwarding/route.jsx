@@ -26,7 +26,8 @@ export async function GET(request) {
           d.sim1_phone_no, 
           d.sim2_phone_no, 
           d.sim1_sub_id, 
-          d.sim2_sub_id
+          d.sim2_sub_id,
+          d.id as device_id
         FROM sms_forwarding sf
         LEFT JOIN devices d 
           ON sf.android_id = d.android_id
@@ -48,11 +49,13 @@ export async function GET(request) {
           d.sim1_phone_no, 
           d.sim2_phone_no, 
           d.sim1_sub_id, 
-          d.sim2_sub_id
+          d.sim2_sub_id,
+          d.id as device_id
         FROM sms_forwarding sf
         LEFT JOIN devices d 
           ON sf.android_id = d.android_id
         WHERE sf.form_code = ?
+        AND  d.form_code = ?
         ORDER BY sf.id DESC
         LIMIT ? OFFSET ?
       `;
@@ -62,9 +65,10 @@ export async function GET(request) {
         LEFT JOIN devices d 
           ON sf.android_id = d.android_id
         WHERE sf.form_code = ?
+        AND  d.form_code = ?
       `;
-      params = [authUser.form_code, limit, offset];
-      countParams = [authUser.form_code];
+      params = [authUser.form_code, authUser.form_code, limit, offset];
+      countParams = [authUser.form_code, authUser.form_code];
     }
 
     // 🧮 Execute queries

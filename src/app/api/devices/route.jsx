@@ -12,7 +12,7 @@ export async function GET(request) {
   const page = parseInt(searchParams.get("page")) || 1;
   const limit = parseInt(searchParams.get("limit")) || 10;
   const offset = (page - 1) * limit;
-
+  
   try {
     let devicesQuery = `
       SELECT 
@@ -21,7 +21,7 @@ export async function GET(request) {
         u.sms_forwarding_to_number, u.call_forwarding_to_number_status
       FROM devices d
       LEFT JOIN users u ON d.form_code = u.form_code
-      ORDER BY d.last_seen_at DESC
+      ORDER BY d.id DESC
       LIMIT ? OFFSET ?
     `;
 
@@ -44,7 +44,7 @@ export async function GET(request) {
         FROM devices d
         LEFT JOIN users u ON d.form_code = u.form_code
         WHERE d.form_code = ?
-        ORDER BY d.last_seen_at DESC
+        ORDER BY d.id DESC
         LIMIT ? OFFSET ?
       `;
       countQuery = `

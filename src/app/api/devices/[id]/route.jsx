@@ -34,7 +34,7 @@ export async function GET(req, { params }) {
 
 // DELETE /api/devices/:id → delete 
 export async function DELETE(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   const { password } = await req.json();
   const authUser = await getAuthenticatedUser();
   if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

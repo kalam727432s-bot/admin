@@ -16,9 +16,18 @@ export async function getAuthenticatedUser() {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
+    // console.log(decoded.login_session,  "Paylaod ");
     const [rows] = await db.query("SELECT * FROM users WHERE id = ? AND status = ?", [decoded.id, "Enabled"]);
     if (!rows || rows.length === 0) return null;
     const user = rows[0];
+    
+    if(user.role!=='admin'){
+        // check hasPassword changed or not as user only
+      if (user.password !== decoded.login_session) {
+        return null;
+      }
+    } 
+
     // login_as_admin and admin_id from token
     if(decoded?.login_as_admin){
       user.login_as_admin = decoded.login_as_admin || false;

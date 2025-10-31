@@ -5,14 +5,19 @@ import AccountExpiredInfo from '@/components/users/AccountExpiredInfo';
 import LogoutButton from '@/components/LogoutButton';
 import { HiOutlineMenu } from 'react-icons/hi';
 import BackToAdmin from '@/components/BackToAdmin';
+import { closeSocket, getSocket } from '@/Helper';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 // Provide both user and setUser to allow updates from client components
 export const UserContext = createContext({ user: null, setUser: () => {} });
 
+let socket;
 export default function RootLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const router = useRouter(); 
 
   useEffect(() => {
     fetch('/api/profile')
@@ -20,6 +25,52 @@ export default function RootLayout({ children }) {
       .then((data) => setUser(data.data))
       .catch((err) => console.error(err));
   }, []);
+
+    
+  useEffect(() => {
+    if(!user){
+      return;      
+    }
+    const authuser = user;
+    if (!authuser) return;
+    const socket = getSocket(authuser);
+    // socket.on("connect", () => {});
+    socket.on("is_logout", (data) => {
+      if (data.user_id == authuser.id) {
+          toast.error("Please login again. Your password has been changed.");
+          handleLogout();
+        }
+    });
+    socket.on("new_device_insert", (data) => {
+      toast.success(data.message);
+    });
+    // socket.on("disconnect", () => console.log("❌ Disconnected"));
+    return () => {
+      socket.off("is_logout");
+      socket.off("new_device_insert");
+    };
+  }, [user]);
+
+  const handleLogout = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout`, {
+          method: 'GET'
+        });
+        if (res.ok) {
+          closeSocket();
+          setUser(null);
+          // toast.success("Logout successfully.");
+          router.push('/login');
+        } else {
+          toast.error('Logout failed. Please try again.');
+        }
+      } catch (err) {
+        console.error('Logout failed:', err);
+        toast.error('Logout failed. Please try again.');
+      }
+};
+
+  
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
@@ -47,9 +98,19 @@ export default function RootLayout({ children }) {
         </header>
 
         {/* Account expired info */}
-        <div className="flex justify-center mt-3">
+        <div className="flex justify-center">
           <AccountExpiredInfo />
         </div>
+      {
+        process.env.NODE_ENV  == 'development' && (
+          <div className="w-full bg-red-500 text-white p-2 text-center font-bold">
+        <marquee>
+            We're currently performing maintenance. If you encounter an error, please refresh the page after a short while.
+        </marquee>
+        </div>
+        )
+      }
+        
 
         {/* Page content */}
         {children}

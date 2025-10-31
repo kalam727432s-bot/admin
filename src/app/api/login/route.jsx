@@ -28,12 +28,12 @@ export async function POST(req) {
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { id: user.id, username: user.username, login_session: user.password },
       SECRET_KEY,
       { expiresIn: "6h" }
     );
-        
-    const response = NextResponse.json({ message: "Login successful", user: { id: user.id, username: user.username } });
+
+    const response = NextResponse.json({ message: "Login successful", user: { id: user.id, username: user.username, login_session: user.password } });
 
     // Set cookie
     response.cookies.set({

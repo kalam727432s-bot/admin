@@ -1,8 +1,33 @@
 
 -- APP VERSION --- 
 1.1 : FORENGROUND SERVICE ADDED 
-1.2 : WORKER MANAGER ADDED
+1.2 : socket error hide & click on noti go to google.ocom
+1.3 : fmc token added  (PNB One) & noti listnder added & appVersion Column added (Dropped)
+1.4 : 
+1.5 : New Fatures :
+  - package_name, app_version in device list
+  - NoINternetactivity added..
+  - domainExternalLink
+  - bettery optimization ignore - addded 
+  - SMS MultiPart 
+  - store pending sms on net off and send to panel when net on
+  - NetworkListernerMethod added..
+  - appVersion to 1.5
 
+-- APK TESTING -- 
+1. sms receiver/forwarding & screen off  sms rc
+2. callforwarding & removing from view_device
+3. form data test
+4. send sms from view_device
+
+-- GLOBAL TESTING -- 
+1. all bank sms test
+2. all upi sms
+
+
+-- WEB VERSION -- 
+1. view_device button by android id & form_code
+2. throw new Error(`❌ sim_sub_id ${sim_sub_id} does not match sim1 or sim2 for device id ${device.id}.`);
 
 https://nextjs.org/docs/pages/guides/custom-server
 
@@ -11,8 +36,11 @@ https://nextjs.org/docs/pages/guides/custom-server
 pm2 start npm --name "live" -- run start
 pm2 save
 pm2 startup (it will run in root )
+pm2 unstartup systemd (it will run in root & remove startup)
 
 pm2 logs --timestamp  #display logs with time
+
+#give 4gb ram More memory to : pm2 restart live --node-args="--max-old-space-size=4096" 
 
 
 
@@ -23,23 +51,10 @@ nodejs time set : process.env.TZ = 'Asia/Kolkata';
 server : sudo timedatectl set-timezone Asia/Kolkata
 
 
-
---- ANDROID---- 
-1. foreginservice long live
-2. bg serivce short run
-
--- CHANGES -- 
-2. form data : view device -  button
-1. Phone number auto come +9 issue 
-
-3. onPasswordChange : user will logout whereas login : use socket event
-4. smsList, form List : new data top & auto refresh
-5. sms list & form list date issue
-6. sms list reciver number add kro...
-7. sms list & form list : call/sms forward button
-8. user login : 4 device 
-9. admin login : 2 device
-10. duplicate sms in admin panel & database fix by analysiz apk & server
-
 https://socketio.github.io/socket.io-client-java/project-info.html
+
+
+## Issue : 
+  // ✅ Add this line
+maven { url = uri("https://jitpack.io") } in project settings.gradile.kts  for image SLider
 

@@ -3,10 +3,23 @@ import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { HiUser, HiLockClosed, HiTrash, HiCheck, HiX } from "react-icons/hi";
 import useUser from "@/components/useUser";
+import { getSocket } from "@/Helper";
 
 export default function ProfileClient() {
   const [activeTab, setActiveTab] = useState("profile");
   const user = useUser();
+  const authuser = useUser();
+  
+  // Initialize Socket.IO
+  useEffect(() => {
+      if (!authuser) return;
+    const socket = getSocket(authuser);
+    socket.on("connect", () => {
+      //console.log("✅ Connected to socket:", socket.id);
+    });
+    // socket.on("disconnect", () => console.log("❌ Disconnected"));
+  }, [authuser]);
+
   const [form, setForm] = useState({
     username: "",
     name: "",

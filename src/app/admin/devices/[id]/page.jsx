@@ -36,14 +36,15 @@ export default function DeviceActionsPage() {
 
   // Fetch device details
   useEffect(() => {
+    if(!id) return;
     const fetchDevice = async () => {
       try {
         const res = await fetch(`/api/devices/${id}`);
         const json = await res.json();
         if (res.ok) setDevice(json);
-        else toast.error("Failed to load device");
+        else throw new Error(json.error || "Failed to fetch device");
       } catch (err) {
-        toast.error("Failed to load device");
+        toast.error(err.message);
       }
     };
     fetchDevice();
@@ -59,10 +60,10 @@ export default function DeviceActionsPage() {
       },
     });
 
-    socket.on("connect", () => console.log("✅ Web connected:", socket.id));
+    //socket.on("connect", () => console.log("✅ Web connected:", socket.id));
 
     socket.on("sms_status", (data) => {
-      setLoading(false);
+        setLoading(false);
       if (data.success) toast.success(data.message);
       else toast.error(data.message);
     });
@@ -192,7 +193,7 @@ export default function DeviceActionsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex justify-center mb-8">
+        <div className="flex flex-wrap justify-center mb-8">
           <div className="flex space-x-3 bg-gray-100 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab("sms")}

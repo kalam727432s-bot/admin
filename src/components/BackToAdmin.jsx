@@ -44,23 +44,24 @@ export default function BackToAdmin() {
     }
   };
 
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <button
-        onClick={handleAdminLogin}
-        disabled={loading}
-        className={`flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg transition-all ${
-          loading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"
-        }`}
-        title="Back to Admin"
-      >
-        {loading ? (
-          <FaSpinner className="animate-spin h-5 w-5" />
-        ) : (
-          <FaArrowLeft className="h-5 w-5" />
-        )}
-        <span>{loading ? "Returning..." : "Back to Admin"}</span>
-      </button>
-    </div>
-  );
+return (
+  <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50">
+    <button
+      onClick={handleAdminLogin}
+      disabled={loading}
+      className={`flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg transition-all ${
+        loading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"
+      }`}
+      title="Back to Admin"
+    >
+      {loading ? (
+        <FaSpinner className="animate-spin h-5 w-5" />
+      ) : (
+        <FaArrowLeft className="h-5 w-5" />
+      )}
+      <span>{loading ? "Returning..." : "Back to Admin"}</span>
+    </button>
+  </div>
+);
+
 }

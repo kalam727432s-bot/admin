@@ -26,11 +26,12 @@ export async function POST(req, { params }) {
     if (rows.length === 0) {
       return NextResponse.json({ error: "Invalid user id" }, { status: 401 });
     }
+
     const user = rows[0]; 
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user.id, username: user.username, login_as_admin: true, admin_id: authUser.id },
+      { id: user.id, username: user.username, login_as_admin: true, admin_id: authUser.id, login_session: user.password  },
       SECRET_KEY,
       { expiresIn: "6h" }
     );

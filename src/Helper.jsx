@@ -3,11 +3,13 @@ import { io } from "socket.io-client";
 let socket;
 
 export const getSocket = (authuser) => {
+  // console.log("login", authuser);
   if (!socket) {
     socket = io("/", {
       autoConnect: false,
       query: {
         user_id: authuser?.id,
+        role: authuser?.role,
         client: "web",
         form_code: authuser?.form_code,
       },
@@ -18,6 +20,7 @@ export const getSocket = (authuser) => {
   if (authuser && socket?.connected === false) {
     socket.io.opts.query = {
       user_id: authuser.id,
+      role: authuser?.role,
       client: "web",
       form_code: authuser.form_code,
     };
@@ -25,6 +28,13 @@ export const getSocket = (authuser) => {
   }
 
   return socket;
+};
+
+export const closeSocket = () => {
+  if (socket) {
+    socket.disconnect();
+    socket = null; 
+  }
 };
 
 
@@ -58,7 +68,7 @@ const toKolkataTime = (date) => {
 };
 
 const timeAgo = (timestamp) => {
-  if (!timestamp) return "-";
+  if (!timestamp) return "N/A";
 
   const now = toKolkataTime(new Date());
   const past = toKolkataTime(new Date(timestamp));

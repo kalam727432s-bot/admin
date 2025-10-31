@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { timeAgo } from "@/Helper";
+import { currentTime, getSocket, timeAgo } from "@/Helper";
 import useUser from "@/components/useUser";
 import toast from "react-hot-toast";
 import { Loader2, Trash2, Send, Timer } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
   const [formData, setFormData] = useState([]);
@@ -13,6 +14,31 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState([]); // Track expanded cards
   const authuser = useUser();
+  const router = useRouter();
+
+
+  // Initialize Socket.IO
+    useEffect(() => {
+      if (!authuser) return;
+      const socket = getSocket(authuser);
+      socket.on("connect", () => {
+        //console.log("✅ Connected to socket:", socket.id);
+      });
+      socket.on("new_form_data", (data) => {
+        // console.log("🔔 New form data received via socket:", data);
+        if(data.success){
+          toast.success(data.message); 
+        }else {
+          toast.error(data.message);
+        }
+        fetchFormData(page);
+      });
+      // socket.on("disconnect", () => console.log("❌ Disconnected"));
+      return () => {
+        socket.off("new_form_data");
+      };
+  }, [authuser]);
+  
 
   // Fetch form data
   const fetchFormData = async (page) => {
@@ -129,29 +155,42 @@ export default function Page() {
                       </h2>
                       <p className="text-gray-600 mb-1">
                         <span className="font-medium">Device Name:</span>{" "}
-                        {item.device_name}
+                        {item.device_name} ({item.device_model})
                       </p>
                       <p className="text-gray-600">
-                        <span className="font-medium">Device Model:</span>{" "}
-                        {item.device_model}
+                        <span className="font-medium">Device Id</span>{" "}
+                        #{item.device_id}  {item.android}
                       </p>
                     </div>
                     <div className="text-end">
-                      <button
-                        onClick={() => handleDelete(item.form_id)}
-                        className="px-3 py-1 flex gap-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition text-sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
+                      <div className="flex justify-end gap-2">
+                          <button
+                          onClick={() => handleDelete(item.form_id)}
+                          className="px-3 py-1 flex gap-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition text-sm"
+                        >
+                          Delete
+                        </button>
+                        {
+                          item.device_id && (
+                            <button
+                            onClick={() => router.push(`/admin/devices/${item.device_id}`)}
+                            className="hidden px-3 py-1 flex gap-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm"
+                          >
+                            View Device
+                          </button>
+                          )
+                        }
+                        
+                      </div>
+                      
                       {item.created_at && (
                         <p className="mt-3 flex gap-1 justify-end text-gray-500 text-sm">
                           <Timer className="w-4 h-4" />
-                          {timeAgo(item.created_at)}
+                          {currentTime(item.created_at)}
                         </p>
                       )}
                       <p className=" flex gap-1 justify-end text-gray-500 text-sm">
-                          {item.form_code}
+                          By {item.form_code}
                         </p>
                     </div>
                   </div>

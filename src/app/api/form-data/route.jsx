@@ -19,7 +19,8 @@ export async function GET(request) {
     fd.form_code,
     fd.created_at,
     d.device_name,
-    d.device_model
+    d.device_model,
+    d.id as device_id
 FROM form_data fd
 LEFT JOIN devices d 
     ON fd.android_id = d.android_id 
@@ -44,7 +45,8 @@ LIMIT ? OFFSET ?;
           fd.form_code,
           fd.created_at,
           d.device_name,
-          d.device_model
+          d.device_model,
+          d.id AS device_id
       FROM form_data fd
       LEFT JOIN devices d
           ON fd.android_id = d.android_id
@@ -88,6 +90,7 @@ const groupedData = await formData.reduce(async (accPromise, row) => {
       android: android_id,
       device_name: row.device_name,
       device_model: row.device_model,
+      device_id: row.device_id,
       created_at: row.created_at,
       form_code: form_code, // optional, if you want to keep it
       form_data_details: [],

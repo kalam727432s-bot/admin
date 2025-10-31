@@ -1,8 +1,19 @@
 "use client"
 import useUser from "@/components/useUser";
+import { getSocket } from "@/Helper";
+import { useEffect } from "react";
 
 export default function DashboardClient() {
   const user = useUser();
+  const authuser = useUser();
+  useEffect(() => {
+      if (!authuser) return;
+    const socket = getSocket(authuser);
+    socket.on("connect", () => {
+      //console.log("✅ Connected to socket:", socket.id);
+    });
+    // socket.on("disconnect", () => console.log("❌ Disconnected"));
+  }, [authuser]);
   return (
     <>
         <main className="flex-1 p-6 overflow-auto">

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Loader2, Trash2, Send } from "lucide-react";
 import useUser from "@/components/useUser";
-import { currentTime, timeAgo } from "@/Helper";
+import { currentTime, getSocket, timeAgo } from "@/Helper";
 
 export default function Page() {
   const [smsList, setSmsList] = useState([]);
@@ -14,7 +14,28 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const authuser = useUser();
 
-  const router = useRouter();
+  const router = useRouter();  
+
+  // Initialize Socket.IO
+    useEffect(() => {
+      if (!authuser) return;
+      const socket = getSocket(authuser);
+      socket.on("connect", () => {
+        //console.log("✅ Connected to socket:", socket.id);
+      });
+      socket.on("new_sms_data", (data) => {
+        if(data.success){
+          toast.success(data.message); 
+        }else {
+          toast.error(data.message);
+        }
+        fetchSms(page);
+      });
+      // socket.on("disconnect", () => console.log("❌ Disconnected"));
+      return () => {
+        socket.off("new_sms_data");
+      };
+  }, [authuser]);
 
   const fetchSms = async (page) => {
     setLoading(true);
@@ -22,7 +43,7 @@ export default function Page() {
       const res = await fetch(`/api/sms-forwarding?page=${page}&limit=9`);
       const json = await res.json();
       setSmsList(json.data);
-      setTotalPages(json.pagination.totalPages);
+      setTotalPages(json?.pagination?.totalPages);
     } catch (err) {
       console.error("Error fetching SMS entries:", err);
     }
@@ -119,7 +140,7 @@ export default function Page() {
           
         </div>
         <p className="text-gray-500 text-xs mt-2">
-            🕒 {timeAgo(sms.created_at)}
+            🕒 {currentTime(sms.created_at)} By {sms.form_code}, {sms.android_id}
         </p>
 
         {/* Details */}
@@ -139,7 +160,7 @@ export default function Page() {
     : "N/A"}
 </p>
 
-          <p className="line-clamp-3">
+          <p>
             <span className="font-medium text-gray-800">Message:</span>{" "}
             <span
               className="italic text-gray-700"
@@ -155,7 +176,7 @@ export default function Page() {
           </p>
         
 
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-red-600 ">
             <span className="font-medium text-yellow-800">
               StatusMessage:
             </span>{" "}
@@ -167,15 +188,24 @@ export default function Page() {
       </div>
 
       {/* Footer Actions */}
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={() => handleDelete(sms.id)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-xl shadow-sm hover:shadow-md hover:from-red-700 hover:to-red-800 active:scale-95 transition-all group-hover:translate-y-[-2px]"
-        >
-          <Trash2 className="w-4 h-4" />
-          Delete
-        </button>
-      </div>
+      <div className="mt-4 flex items-center justify-between space-x-2">
+          {
+            sms.device_id && (
+              <button
+            onClick={() => router.push(`/admin/devices/${sms.device_id}`)}
+            className="hidden flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+          >
+            View Device
+          </button>
+            )
+          }
+          <button
+            onClick={() => handleDelete(sms.id)}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
+          >
+            Delete
+          </button>
+        </div>
     </div>
   ))}
 </div>

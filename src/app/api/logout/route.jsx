@@ -2,7 +2,7 @@
 import { cookies } from 'next/headers';
 
 export async function GET() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.set({
     name: 'token',
     value: '',

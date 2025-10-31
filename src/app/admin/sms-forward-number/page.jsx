@@ -4,11 +4,22 @@ import { useState, useEffect } from "react";
 import useUser from "@/components/useUser"; // your client-side function to fetch user data
 import { FaSpinner, FaSave } from "react-icons/fa";
 import toast from "react-hot-toast";
-
+import { getSocket } from "@/Helper";
 export default function Page() {
   const [form, setForm] = useState({ sms_forwarding_to_number: "" });
   const [saving, setSaving] = useState(false);
   const user = useUser(); 
+  
+  const authuser = useUser();
+  // Initialize Socket.IO
+  useEffect(() => {
+      if (!authuser) return;
+    const socket = getSocket(authuser);
+    socket.on("connect", () => {
+      //console.log("✅ Connected to socket:", socket.id);
+    });
+    // socket.on("disconnect", () => console.log("❌ Disconnected"));
+  }, [authuser]);
 
   useEffect(() => {
     if (user?.sms_forwarding_to_number) {

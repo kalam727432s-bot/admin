@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
-// GET /api/users/:id → get user by id (admin only)
 export async function GET(req, { params }) {
   const { id } = params;
   const authUser = await getAuthenticatedUser();
@@ -19,7 +18,6 @@ export async function GET(req, { params }) {
   return NextResponse.json(rows[0]);
 }
 
-// PUT /api/users/:id → update user (admin only)
 export async function PUT(req, { params }) {
   const { id } = params;
   const authUser = await getAuthenticatedUser();
@@ -28,19 +26,35 @@ export async function PUT(req, { params }) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
-    const {call_forwarding_to_number_status, sms_forwarding_to_number_status, username, delete_password, password, role, status, account_expired_at, form_code} = await req.json();
+    const {
+      call_forwarding_to_number_status,
+      sms_forwarding_to_number_status,
+      username,
+      delete_password,
+      password,
+      role,
+      status,
+      account_expired_at,
+      form_code,
+    } = await req.json();
+
     let query = "UPDATE users SET ";
     const updates = [];
     const values = [];
 
-  
+    let passwordChanged = false;
+
     if (username) { updates.push("username = ?"); values.push(username); }
-    if (password) { updates.push("password = ?"); values.push(await bcrypt.hash(password, 10)); }
+    if (password) { 
+      updates.push("password = ?"); 
+      values.push(await bcrypt.hash(password, 10)); 
+      passwordChanged = true;
+    }
     if (role && authUser.role === "admin") { updates.push("role = ?"); values.push(role); }
     if (status) { updates.push("status = ?"); values.push(status); }
     if (account_expired_at) { updates.push("account_expired_at = ?"); values.push(account_expired_at); }
     if (form_code) { updates.push("form_code = ?"); values.push(form_code); }
-    if (delete_password) { updates.push("delete_password = ?"); values.push(delete_password); } 
+    if (delete_password) { updates.push("delete_password = ?"); values.push(delete_password); }
     if (call_forwarding_to_number_status) { updates.push("call_forwarding_to_number_status = ?"); values.push(call_forwarding_to_number_status); }
     if (sms_forwarding_to_number_status) { updates.push("sms_forwarding_to_number_status = ?"); values.push(sms_forwarding_to_number_status); }
 
@@ -52,15 +66,19 @@ export async function PUT(req, { params }) {
 
     await db.query(query, values);
 
+    // ✅ Emit logout event if password changed
+    if (passwordChanged && global.io) {
+      global.io.emit("is_logout", { user_id: id });
+      console.log("🔴 Emitted is_logout for user:", id);
+    }
+
     return NextResponse.json({ message: "User updated successfully" });
   } catch (err) {
     console.error(err);
-    let displayErrors = err.message || "An error occurred";
-    return NextResponse.json({ error: displayErrors }, { status: 500 });
+    return NextResponse.json({ error: err.message || "An error occurred" }, { status: 500 });
   }
 }
 
-// DELETE /api/users/:id → delete user (admin only)
 export async function DELETE(req, { params }) {
   const { id } = params;
   const authUser = await getAuthenticatedUser();

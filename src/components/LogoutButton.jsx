@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useUser from './useUser';
+import { closeSocket } from '@/Helper';
 export default function LogoutButton() {
     const [loading, setLoading] = useState(false); // loading state
     const router = useRouter();
@@ -14,6 +15,7 @@ export default function LogoutButton() {
       });
 
       if (res.ok) {
+        closeSocket();
         setAuthUser(null);
         router.push('/login');
       } else {

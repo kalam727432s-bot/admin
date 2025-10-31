@@ -5,12 +5,25 @@ import UserHeader from "@/components/users/UserHeader";
 import UserTable from "@/components/users/UserTable";
 import UserModal from "@/components/users/UserModal";
 import toast from "react-hot-toast";
+import useUser from "@/components/useUser";
+import { getSocket } from "@/Helper";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const authuser = useUser();
+
+  // Initialize Socket.IO
+  useEffect(() => {
+      if (!authuser) return;
+    const socket = getSocket(authuser);
+    socket.on("connect", () => {
+      //console.log("✅ Connected to socket:", socket.id);
+    });
+    // socket.on("disconnect", () => console.log("❌ Disconnected"));
+  }, [authuser]);
 
 
   const fetchUsers = async () => {
