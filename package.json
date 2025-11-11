@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon server.mjs",
     "build": "next build",
-    "start": "NODE_ENV=production node server.mjs"
+    "start": "NODE_ENV=production node server.mjs",
+    "deploy": "pm2 stop dev || true && npm run build && pm2 start live"
   },
   "dependencies": {
     "@next/env": "^15.5.6",

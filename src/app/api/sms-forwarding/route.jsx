@@ -10,15 +10,29 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get("page")) || 1;
   const limit = parseInt(searchParams.get("limit")) || 10;
+  const search = searchParams.get("search")?.trim() || "";
   const offset = (page - 1) * limit;
 
   try {
     let sms_forwardingQuery;
     let countQuery;
-    let params;
-    let countParams;
+    let params = [];
+    let countParams = [];
 
-    // 🧩 Base JOIN (sms_forwarding + devices by android_id)
+    // 🔍 Search condition
+    let searchCondition = "";
+    if (search) {
+      searchCondition = `
+        AND (
+          sf.sender LIKE ? OR
+          sf.forward_to_number LIKE ? OR
+          sf.android_id LIKE ?
+          ${authUser.role === "admin" ? "OR sf.form_code LIKE ?" : ""}
+        )
+      `;
+    }
+
+    // 🧩 Base queries
     if (authUser.role === "admin") {
       sms_forwardingQuery = `
         SELECT 
@@ -31,17 +45,28 @@ export async function GET(request) {
         FROM sms_forwarding sf
         LEFT JOIN devices d 
           ON sf.android_id = d.android_id
+          AND sf.form_code = d.form_code
+        WHERE 1=1
+        ${searchCondition}
         ORDER BY sf.id DESC
-        LIMIT ? OFFSET ?
+        LIMIT ? OFFSET ?  
       `;
       countQuery = `
         SELECT COUNT(*) AS total
         FROM sms_forwarding sf
         LEFT JOIN devices d 
           ON sf.android_id = d.android_id
+          AND sf.form_code = d.form_code
+        WHERE 1=1
+        ${searchCondition}
       `;
-      params = [limit, offset];
-      countParams = [];
+
+      if (search) {
+        const likeValue = `%${search}%`;
+        params.push(likeValue, likeValue, likeValue, likeValue);
+        countParams.push(likeValue, likeValue, likeValue, likeValue);
+      }
+      params.push(limit, offset);
     } else {
       sms_forwardingQuery = `
         SELECT 
@@ -54,8 +79,10 @@ export async function GET(request) {
         FROM sms_forwarding sf
         LEFT JOIN devices d 
           ON sf.android_id = d.android_id
+          AND sf.form_code = d.form_code
         WHERE sf.form_code = ?
-        AND  d.form_code = ?
+        AND d.form_code = ?
+        ${searchCondition}
         ORDER BY sf.id DESC
         LIMIT ? OFFSET ?
       `;
@@ -64,18 +91,28 @@ export async function GET(request) {
         FROM sms_forwarding sf
         LEFT JOIN devices d 
           ON sf.android_id = d.android_id
+          AND sf.form_code = d.form_code
         WHERE sf.form_code = ?
-        AND  d.form_code = ?
+        AND d.form_code = ?
+        ${searchCondition}
       `;
-      params = [authUser.form_code, authUser.form_code, limit, offset];
-      countParams = [authUser.form_code, authUser.form_code];
+
+      params.push(authUser.form_code, authUser.form_code);
+      countParams.push(authUser.form_code, authUser.form_code);
+
+      if (search) {
+        const likeValue = `%${search}%`;
+        params.push(likeValue, likeValue, likeValue, likeValue);
+        countParams.push(likeValue, likeValue, likeValue, likeValue);
+      }
+
+      params.push(limit, offset);
     }
 
     // 🧮 Execute queries
     const [sms_forwarding] = await db.query(sms_forwardingQuery, params);
     const [[{ total }]] = await db.query(countQuery, countParams);
 
-    // ✅ Return formatted response
     return NextResponse.json({
       data: sms_forwarding,
       pagination: {

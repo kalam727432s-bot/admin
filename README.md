@@ -1,3 +1,9 @@
+-- RESEARCH -- 
+1. sms reciever 
+  - short life that broadcast,, so move http task to  workmanger
+2. 
+
+
 
 -- APP VERSION --- 
 1.1 : FORENGROUND SERVICE ADDED 
@@ -13,16 +19,32 @@
   - store pending sms on net off and send to panel when net on
   - NetworkListernerMethod added..
   - appVersion to 1.5
+1.6 : sms forward with https & app version to 1.6
+1.7 : 
+    - permission issue optimizatino,
+    - Helper.java
+    - BaseActivity.java, 
+    - SplashActivity:Api PointLoad
+    - RunningActivity.java updated...
+    - gradile update..
+    - NoInterNetActivity.java
+    - SocketManger.java  updated
+1.7.1 : socket connect incesa e to 10000
+1.7.2 : manifiest sms rc code added..
+1.7.2[Pending] : update apiPoint at everyday once,and  When Disconnect Socket...
+1.7.3
 
 -- APK TESTING -- 
 1. sms receiver/forwarding & screen off  sms rc
 2. callforwarding & removing from view_device
 3. form data test
 4. send sms from view_device
+5. net on and net off : check device online or not
 
 -- GLOBAL TESTING -- 
 1. all bank sms test
 2. all upi sms
+
 
 
 -- WEB VERSION -- 

@@ -9,7 +9,7 @@ const SECRET_KEY = process.env.ADMIN_LOGIN_JWT_SECRET;
 
 export async function POST(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const authUser = await getAuthenticatedUser();
     if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

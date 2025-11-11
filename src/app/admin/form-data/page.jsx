@@ -6,11 +6,13 @@ import useUser from "@/components/useUser";
 import toast from "react-hot-toast";
 import { Loader2, Trash2, Send, Timer } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Page() {
   const [formData, setFormData] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState([]); // Track expanded cards
   const authuser = useUser();
@@ -25,7 +27,7 @@ export default function Page() {
         //console.log("✅ Connected to socket:", socket.id);
       });
       socket.on("new_form_data", (data) => {
-        // console.log("🔔 New form data received via socket:", data);
+        console.log("🔔 New form data received via socket:", data);
         if(data.success){
           toast.success(data.message); 
         }else {
@@ -48,6 +50,7 @@ export default function Page() {
       const json = await res.json();
       setFormData(Array.isArray(json.data) ? json.data : []);
       setTotalPages(json.pagination.totalPages);
+      setTotal(json.pagination.total);
       const allIds = json.data.map(item => `${item.form_id}-${item.android}`);
       setExpandedIds(allIds);
 
@@ -109,7 +112,7 @@ export default function Page() {
   return (
     <main className="flex-1 p-6 bg-gray-100 min-h-screen">
       <header className="flex flex-wrap justify-between items-center gap-3 mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Form Data</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Form Data ({total})</h2>
         <div className="flex gap-3">
           {/* 🟢 New Toggle All Button */}
           <button
@@ -172,12 +175,12 @@ export default function Page() {
                         </button>
                         {
                           item.device_id && (
-                            <button
-                            onClick={() => router.push(`/admin/devices/${item.device_id}`)}
-                            className="hidden px-3 py-1 flex gap-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm"
-                          >
-                            View Device
-                          </button>
+                            <Link
+                              href={`/admin/devices/${item.device_id}`}
+                              className="px-3 py-1 flex gap-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm"
+                            >
+                              View Device
+                            </Link>
                           )
                         }
                         
@@ -212,7 +215,7 @@ export default function Page() {
                           .filter(detail => detail.input_key !== 'form_data_id')
                           .map((detail, index) => (
                             <li
-                              key={detail.form_data_details_id}
+                              key={detail.form_data_details_id+'-'+index}
                               className={`px-2 py-1 mt-2 rounded-md ${
                                 index % 2 === 0 ? "bg-green-100" : "bg-blue-100"
                               }`}
@@ -258,7 +261,7 @@ export default function Page() {
         >
           Prev
         </button>
-        <span className="px-4 py-2 bg-white rounded shadow">{page}</span>
+        <span className="px-4 py-2 bg-white rounded shadow">Page {page} of {totalPages}</span>
         <button
           className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 disabled:opacity-50"
           onClick={() => setPage((p) => Math.min(p + 1, totalPages))}

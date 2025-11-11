@@ -41,6 +41,13 @@ export default function RootLayout({ children }) {
           handleLogout();
         }
     });
+    socket.on("notify", (data) => {
+      if(data.success){
+        toast.success(data.message);
+      }else {
+        toast.error(data.message);
+      }
+    });
     socket.on("new_device_insert", (data) => {
       toast.success(data.message);
     });
@@ -48,6 +55,7 @@ export default function RootLayout({ children }) {
     return () => {
       socket.off("is_logout");
       socket.off("new_device_insert");
+      socket.off("notify");
     };
   }, [user]);
 
