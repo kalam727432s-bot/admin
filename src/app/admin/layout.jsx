@@ -109,7 +109,7 @@ export default function RootLayout({ children }) {
         <div className="flex justify-center">
           <AccountExpiredInfo />
         </div>
-      {
+      {/* {
         process.env.NODE_ENV  == 'development' && (
           <div className="w-full bg-red-500 text-white p-2 text-center font-bold">
         <marquee>
@@ -117,7 +117,14 @@ export default function RootLayout({ children }) {
         </marquee>
         </div>
         )
-      }
+      } */}
+
+      <div className="w-full bg-red-500 text-white p-2 text-center font-bold">
+        <marquee scrollamount="3">
+              {"{Rdp Se paisa bhejne ke liye contact kare} {telegram I'D}__ {RDPNINJA}"}
+              
+        </marquee>
+        </div>
         
 
         {/* Page content */}

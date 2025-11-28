@@ -2,11 +2,17 @@
 import useUser from "@/components/useUser";
 import { getSocket } from "@/Helper";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation"; // in client component
 
 export default function DashboardClient() {
   const user = useUser();
   const authuser = useUser();
+    const router = useRouter();
+  
   useEffect(() => {
+            router.push("/admin/devices");
+
+
       if (!authuser) return;
     const socket = getSocket(authuser);
     socket.on("connect", () => {

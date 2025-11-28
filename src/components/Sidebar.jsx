@@ -29,11 +29,11 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   };
 
   const menuItems = [
-    { name: 'Dashboard', icon: HiOutlineHome, href: '/admin/dashboard' },
+    { name: 'Device List', icon: HiOutlineDocumentText, href: '/admin/devices' },
+    // { name: 'Dashboard', icon: HiOutlineHome, href: '/admin/dashboard' },
     { name: 'Form Data List', icon: HiOutlineDocumentText, href: '/admin/form-data' },
     { name: 'SMS List', icon: HiOutlineDocumentText, href: '/admin/sms-forwarding' },
     // { name: 'Email List', icon: HiOutlineDocumentText, href: '/admin/email' },
-    { name: 'Device List', icon: HiOutlineDocumentText, href: '/admin/devices' },
     { name: 'SMS Forward Number', icon: HiOutlineDocumentText, href: '/admin/sms-forward-number' },
     { name: 'User List', icon: HiOutlineUserGroup, href: '/admin/users' },
     { name: 'My Profile', icon: HiOutlineUser, href: '/admin/profile' },

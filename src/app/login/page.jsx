@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (response.ok) {
         toast.success("Login successful");
         setForm({ username: "", password: "" });
-        router.push("/admin/dashboard");
+        router.push("/admin/devices");
       } else {
         setError(data.error || "Login failed");
         toast.error(data.error || "Login failed");
@@ -127,9 +127,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-gray-600 mt-5">
-          Contact Admin : <Link href="https://wa.me/919007737065" className="text-indigo-600 hover:underline font-medium">
-            +91 9007737065
-          </Link>
+          Contact Admin for New Apk 9007737065
         </p>
       </div>
     </div>

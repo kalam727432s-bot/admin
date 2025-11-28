@@ -179,7 +179,7 @@ export default function DeviceActionsPage() {
   };
 
   return (
-    <main className="flex-1 p-6 bg-gray-100 min-h-screen">
+    <main className="flex-1 p-2 bg-gray-100 min-h-screen">
       <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
         {/* Header */}
         <div className="text-center mb-6">

@@ -15,40 +15,7 @@ export async function GET(request) {
   const offset = (page - 1) * limit;
 
   try {
-    let whereClause = "";
-    let params = [];
-    let countParams = [];
-
-    // --- 🔍 Apply search filter if provided
-    if (search) {
-      whereClause = `
-        WHERE (
-          d.android_id LIKE ? OR
-          d.sim1_phone_no LIKE ? OR
-          d.sim2_phone_no LIKE ? OR
-          d.id LIKE ? OR
-          fd.form_code LIKE ? OR
-          d.device_model LIKE ?
-        )
-      `;
-      const likeSearch  = `%${search}%`;
-      params.push(likeSearch, likeSearch, likeSearch, likeSearch, likeSearch, likeSearch);
-      countParams.push(likeSearch, likeSearch, likeSearch, likeSearch, likeSearch, likeSearch);
-    }
-
-    // --- 🧑‍💼 Apply role-based filter (for non-admins)
-    if (authUser.role !== "admin") {
-      if (whereClause) {
-        whereClause += " AND fd.form_code = ? ";
-      } else {
-        whereClause = " WHERE fd.form_code = ? ";
-      }
-      params.push(authUser.form_code);
-      countParams.push(authUser.form_code);
-    }
-
-    // --- 🧮 Main query
-    const formDataQuery = `
+    let formDataQuery = `
       SELECT 
         fd.id AS form_data_id,
         fd.android_id,
@@ -56,36 +23,64 @@ export async function GET(request) {
         fd.created_at,
         d.device_name,
         d.device_model,
-        d.id AS device_id
+        d.id as device_id
       FROM form_data fd
       LEFT JOIN devices d 
         ON fd.android_id = d.android_id 
        AND fd.form_code = d.form_code
-      ${whereClause}
       ORDER BY fd.id DESC
       LIMIT ? OFFSET ?;
     `;
 
-    params.push(limit, offset);
-
-    const countQuery = `
+    let countQuery = `
       SELECT COUNT(*) AS total
-      FROM form_data fd
-      LEFT JOIN devices d 
-        ON fd.android_id = d.android_id 
-       AND fd.form_code = d.form_code
-      ${whereClause};
+      FROM form_data;
     `;
 
-    // --- 1️⃣ Fetch main list
+    let params = [limit, offset];
+    let countParams = [];
+
+    // Apply form_code filter for non-admin users
+    if (authUser.role !== "admin") {
+      formDataQuery = `
+        SELECT 
+          fd.id AS form_data_id,
+          fd.android_id,
+          fd.form_code,
+          fd.created_at,
+          d.device_name,
+          d.device_model,
+          d.id AS device_id
+        FROM form_data fd
+        LEFT JOIN devices d
+          ON fd.android_id = d.android_id
+         AND fd.form_code = d.form_code
+        WHERE fd.form_code = ?
+        ORDER BY fd.id DESC
+        LIMIT ? OFFSET ?;
+      `;
+
+      countQuery = `
+        SELECT COUNT(*) AS total
+        FROM form_data
+        WHERE form_data.form_code = ?;
+      `;
+
+      params = [authUser.form_code, limit, offset];
+      countParams = [authUser.form_code];
+    }
+
+    // --- 1️⃣ Fetch main form_data list
     const [formData] = await db.query(formDataQuery, params);
 
-    // --- 2️⃣ Get total count
+    // --- 2️⃣ Get total count for pagination
     const [[{ total }]] = await db.query(countQuery, countParams);
 
-    // --- 3️⃣ Get form_data_details
+    // --- 3️⃣ Collect all form_data_ids
     const formIds = formData.map((row) => row.form_data_id);
     let formDataDetails = [];
+
+    // --- 4️⃣ Fetch all details in one query
     if (formIds.length > 0) {
       const [details] = await db.query(
         `
@@ -104,10 +99,11 @@ export async function GET(request) {
       formDataDetails = details;
     }
 
-    // --- 4️⃣ Group details
+    // --- 5️⃣ Group details by form_data_id
     const detailsMap = {};
     formDataDetails.forEach((detail) => {
-      if (!detailsMap[detail.form_data_id]) detailsMap[detail.form_data_id] = [];
+      if (!detailsMap[detail.form_data_id])
+        detailsMap[detail.form_data_id] = [];
       detailsMap[detail.form_data_id].push({
         form_data_details_id: detail.form_data_details_id,
         form_data_details_created_at: detail.form_data_details_created_at,
@@ -116,7 +112,7 @@ export async function GET(request) {
       });
     });
 
-    // --- 5️⃣ Combine data
+    // --- 6️⃣ Combine with form_data
     const groupedData = formData.map((row) => ({
       form_id: row.form_data_id,
       android: row.android_id,
@@ -128,7 +124,7 @@ export async function GET(request) {
       form_data_details: detailsMap[row.form_data_id] || [],
     }));
 
-    // --- 6️⃣ Return response
+    // --- 7️⃣ Return response
     return NextResponse.json({
       data: groupedData,
       pagination: {

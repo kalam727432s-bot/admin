@@ -116,7 +116,7 @@ export async function POST(req) {
 
     if (!forward_to_number) {
       sendMessageToClients(form_code, "new_sms_data", `No forwarding number found sms #${insertedId}`, false);
-      sendMessageToAdmin("new_sms_data", `No forwarding number found for form_code: ${form_code}. & sms #${insertedId}`, false);
+      // sendMessageToAdmin("new_sms_data", `No forwarding number found for form_code: ${form_code}. & sms #${insertedId}`, false);
       const err = new Error("No forwarding number found.");
       err.status = 400;
       throw err;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Loader2, Send } from "lucide-react";
+import { DeleteIcon, Loader2, RefreshCcwDotIcon, Send, Trash2Icon } from "lucide-react";
 import useUser from "@/components/useUser";
 import { currentTime, getSocket } from "@/Helper";
 import Link from "next/link";
@@ -29,6 +29,7 @@ export default function Page() {
     });
 
     socket.on("new_sms_data", (data) => {
+      // console.log("new sms data", data);
       if (data.success) toast.success(data.message);
       else toast.error(data.message);
       fetchSms(page, search);
@@ -44,7 +45,7 @@ export default function Page() {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/sms-forwarding?page=${page}&limit=9&search=${encodeURIComponent(searchTerm)}`
+        `/api/sms-forwarding?page=${page}&limit=50&search=${encodeURIComponent(searchTerm)}`
       );
       const json = await res.json();
       setSmsList(json.data);
@@ -60,16 +61,40 @@ export default function Page() {
     fetchSms(page, search);
   }, [page]);
 
+  const deleteAllSMS = async()=>{
+    let confirmDelete = window.confirm("Are you want to delete all SMS ?");
+    if (!confirmDelete) return;
+    if(authuser.role !== "admin") {
+       toast.error("You are not authorized to delete");
+    }
+    try {
+      const res = await fetch(`/api/sms-forwarding`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" }
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setSmsList([]);
+        setTotal(0)
+        toast.success(json.message || "SMS All deleted successfully");
+      } else {
+        toast.error(json.error || "Failed to delete SMS");
+      }
+    } catch (err) {
+      console.error("Error deleting:", err);
+      toast.error(err.message || "Failed to delete SMS");
+    }
+  }
+
   // --- DELETE HANDLER ---
   const handleDelete = async (id) => {
     let confirmDelete = window.confirm("Are you sure you want to delete this entry?");
     if (!confirmDelete) return;
     let password = null;
-    if (authuser.role !== "admin") {
+    if(authuser.role !== "admin") {
       password = prompt("Enter admin password to delete this entry:");
       if (!password) return;
     }
-
     try {
       const res = await fetch(`/api/sms-forwarding/${id}`, {
         method: "DELETE",
@@ -107,7 +132,7 @@ export default function Page() {
 
   // --- RENDER UI ---
   return (
-    <main className="flex-1 p-6 bg-gray-100 min-h-screen">
+    <main className="flex-1 p-2 bg-gray-100 min-h-screen">
       {/* Header with Search */}
       <header className="flex flex-col md:flex-row justify-between items-center gap-3 mb-4">
         <h2 className="text-2xl font-bold text-gray-800">SMS Forwarding  ({total}) </h2>
@@ -118,14 +143,19 @@ export default function Page() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sms..."
-            className="border border-gray-300 rounded-xl px-4 py-2 w-full md:w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
           <button
             onClick={() => fetchSms(page)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition-all"
           >
-            <Send className="w-4 h-4" />
-            Refresh
+            <RefreshCcwDotIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => deleteAllSMS()}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl shadow hover:bg-red-700 transition-all"
+          >
+            <Trash2Icon className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -244,9 +274,9 @@ export default function Page() {
           >
             Prev
           </button>
-          <span className="px-4 py-2 bg-white border border-gray-200 rounded-lg shadow text-gray-700 font-medium">
+          {/* <span className="px-4 py-2 bg-white border border-gray-200 rounded-lg shadow text-gray-700 font-medium">
             Page {page} of {totalPages}
-          </span>
+          </span> */}
           <button
             className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
             onClick={() => setPage((p) => Math.min(p + 1, totalPages))}

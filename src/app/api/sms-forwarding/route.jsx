@@ -127,3 +127,19 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
+// DELETE /api/sms-forwarding → all delete  : for admin only
+export async function DELETE(req, { params }) {
+  const authUser = await getAuthenticatedUser();
+  if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // console.log("Authenticated user:", authUser.role, authUser.form_code);
+
+  if(authUser.role !== "admin") {
+     return NextResponse.json({ error: "You are not authorized to delete" }, { status: 401 });
+  }
+  
+  await db.query("DELETE FROM sms_forwarding");
+  return NextResponse.json({ message: "SMS All deleted successfully" });
+}
+

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { currentTime, getSocket, timeAgo } from "@/Helper";
 import useUser from "@/components/useUser";
 import toast from "react-hot-toast";
-import { Loader2, Trash2, Send, Timer } from "lucide-react";
+import { Loader2, Trash2, Send, Timer, RefreshCcwDotIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -17,9 +17,9 @@ export default function Page() {
   const [expandedIds, setExpandedIds] = useState([]); // Track expanded cards
   const authuser = useUser();
   const router = useRouter();
+  const [search, setSearch] = useState(""); // 🔍 search state
 
 
-  // Initialize Socket.IO
     useEffect(() => {
       if (!authuser) return;
       const socket = getSocket(authuser);
@@ -43,10 +43,10 @@ export default function Page() {
   
 
   // Fetch form data
-  const fetchFormData = async (page) => {
+  const fetchFormData = async (page, searchTerm = "") => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/form-data?page=${page}&limit=9`);
+      const res = await fetch(`/api/form-data?page=${page}&limit=9&search=${encodeURIComponent(searchTerm)}`);
       const json = await res.json();
       setFormData(Array.isArray(json.data) ? json.data : []);
       setTotalPages(json.pagination.totalPages);
@@ -59,10 +59,12 @@ export default function Page() {
     }
     setLoading(false);
   };
+  
 
   useEffect(() => {
     fetchFormData(page);
   }, [page]);
+  
 
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this entry?");
@@ -109,12 +111,19 @@ export default function Page() {
     }
   };
 
+  // --- OPTIONAL LIVE SEARCH ---
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      fetchFormData(1, search);
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [search]);
+
   return (
-    <main className="flex-1 p-6 bg-gray-100 min-h-screen">
+    <main className="flex-1 p-2 bg-gray-100 min-h-screen">
       <header className="flex flex-wrap justify-between items-center gap-3 mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Form Data ({total})</h2>
         <div className="flex gap-3">
-          {/* 🟢 New Toggle All Button */}
           <button
             onClick={handleToggleAll}
             disabled={formData.length === 0}
@@ -122,13 +131,19 @@ export default function Page() {
           >
             {expandedIds.length === formData.length ? "Collapse All ▲" : "Expand All ▼"}
           </button>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by id, device, no."
+            className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
 
           <button
             onClick={() => fetchFormData(page)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition-all"
           >
-            <Send className="w-4 h-4" />
-            Refresh
+            <RefreshCcwDotIcon className="w-4 h-4" />
           </button>
         </div>
       </header>

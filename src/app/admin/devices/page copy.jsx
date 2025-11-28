@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import useUser from "@/components/useUser";
 import { currentTime, getSocket, timeAgo } from "@/Helper";
-import { Loader2, Trash2, Send, Trash2Icon, Phone, View, EyeIcon } from "lucide-react";
+import { Loader2, Trash2, Send } from "lucide-react";
 import toast from "react-hot-toast";
-import { FaMobile } from "react-icons/fa";
 
 let socket;
 
@@ -46,22 +45,12 @@ export default function Page() {
         )
       );
     });
-
     // socket.on("disconnect", () => console.log("❌ Disconnected"));
     return () => {
       socket.off("device_status_update");
       socket.off("new_device_data");
     };
   }, [authuser]);
-
-   const handleCheckOnline = (android_id)=>{
-      const socket = getSocket(authuser);
-      if (!socket.connected) return toast.error("Socket not connected");
-      socket.emit('check_online', {android:android_id}, (response)=>{
-        if (response.success) toast.success(response.message);
-          else toast.error(response.message);  
-      })
-    }
 
 
 const fetchDevices = async (page, searchTerm = "") => {
@@ -125,7 +114,6 @@ const fetchDevices = async (page, searchTerm = "") => {
     return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
   };
 
-  
   return (
     <main className="flex-1 p-2 bg-gray-100 min-h-screen">
       <header className="flex flex-col md:flex-row justify-between items-center gap-3">
@@ -141,7 +129,7 @@ const fetchDevices = async (page, searchTerm = "") => {
           />
           <button
             onClick={() => fetchDevices(page)}
-            className="flex items-center gap-2 px-2 py-1 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition-all"
           >
             <Send className="w-4 h-4" />
             Refresh
@@ -159,7 +147,7 @@ const fetchDevices = async (page, searchTerm = "") => {
           {devices.map((device, index) => (
             <div
               key={device.id}
-              className="bg-white relative rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300 md:p-6 p-2 flex flex-col justify-between"
+              className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300 p-6 flex flex-col justify-between"
             >
               <div>
                 <h2 className="font-bold text-lg text-gray-800 mb-1">
@@ -216,24 +204,18 @@ const fetchDevices = async (page, searchTerm = "") => {
               </div>
 
 
-              <div className="mt-4 flex justify-around space-x-2 flex-wrap gap-2 items-center">
-                <button onClick={() => router.push(`/admin/devices/${device.id}`)} className="px-2 py-1 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm"  >
-                  Call-Forward
+              <div className="mt-4 flex justify-between space-x-2">
+                <button
+                  onClick={() => router.push(`/admin/devices/${device.id}`)}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+                >
+                  View Details
                 </button>
-                <button onClick={() => router.push(`/admin/devices/${device.id}`)} className="px-2 py-1 bg-green-600 text-white rounded-xl hover:bg-green-700 transition text-sm"  >
-                  SMS-Forward
-                </button>
-                {/* <button onClick={() => router.push(`/admin/devices/${device.id}`)} className="px-2 py-1 bg-pink-600 text-white rounded-xl hover:bg-pink-700 transition text-sm"  >
-                  Get SMS 
-                </button> */}
-                {/* <button onClick={() => router.push(`/admin/devices/${device.id}`)} className="px-2 py-1 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition text-sm"  >
-                  Get Form Data
-                </button> */}
-                <button onClick={() => handleCheckOnline(device.android_id)} className="px-2 py-1 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition text-sm"  >
-                  Check Online
-                </button>
-                <button title="Delete" onClick={() => handleDelete(device.id)} className="text-red-600 rounded-xl hover:text-red-800 transition absolute top-0 right-0">
-                  <Trash2Icon className="w-6 h-6" />
+                <button
+                  onClick={() => handleDelete(device.id)}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -247,17 +229,17 @@ const fetchDevices = async (page, searchTerm = "") => {
       {totalPages > 1 && (
         <div className="flex justify-center items-center mt-10 gap-3">
           <button
-            className="px-2 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
             onClick={() => setPage((p) => Math.max(p - 1, 1))}
             disabled={page === 1}
           >
             Prev
           </button>
-          <span className="px-2 py-1 bg-white border border-gray-200 rounded-lg shadow text-gray-700 font-medium">
+          <span className="px-4 py-2 bg-white border border-gray-200 rounded-lg shadow text-gray-700 font-medium">
             Page {page} of {totalPages}
           </span>
           <button
-            className="px-2 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
             onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
             disabled={page === totalPages}
           >

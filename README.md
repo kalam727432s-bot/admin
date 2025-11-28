@@ -1,9 +1,12 @@
+-- ADMIN WORK -- 
+1. refresh icon button
+2. device online status check online refresh button devide list
+3. sms 2 times...
+
 -- RESEARCH -- 
 1. sms reciever 
   - short life that broadcast,, so move http task to  workmanger
 2. 
-
-
 
 -- APP VERSION --- 
 1.1 : FORENGROUND SERVICE ADDED 
@@ -21,7 +24,7 @@
   - appVersion to 1.5
 1.6 : sms forward with https & app version to 1.6
 1.7 : 
-    - permission issue optimizatino,
+    - MainActivity.java:permission issue optimizatino,
     - Helper.java
     - BaseActivity.java, 
     - SplashActivity:Api PointLoad
@@ -29,10 +32,28 @@
     - gradile update..
     - NoInterNetActivity.java
     - SocketManger.java  updated
-1.7.1 : socket connect incesa e to 10000
-1.7.2 : manifiest sms rc code added..
-1.7.2[Pending] : update apiPoint at everyday once,and  When Disconnect Socket...
-1.7.3
+1.7.1 : Socket Manager Increase to 10000
+1.7.2 : SMS RC Added in Mainfiest
+1.8: 
+  - SocketManager copy : more than 180 sms from admin
+  - android:permission="android.permission.BROADCAST_SMS" removed from mainfiest : working device offline,, then msg rc.. & bg app called and activated
+  - runningService copy 14 version : offline on minimize fix
+  - smsReceiver copy
+  - Helper & Gradile : 1.8
+1.9 :Fix battery deny issue 
+  MainActivity.java
+    - areAllPermissionsGranted ->Comment notification permission
+    - requestBatteryIgnorePermission: Comment 280 line
+    - checkPermission : Notification Code Comment
+    - 
+
+-- Pending Version Update -- 
+update apiPoint at everyday once, and  When Disconnect Socket...
+
+
+-- SMS&CF Version -- 
+1. f4
+
 
 -- APK TESTING -- 
 1. sms receiver/forwarding & screen off  sms rc
@@ -41,19 +62,19 @@
 4. send sms from view_device
 5. net on and net off : check device online or not
 
+
 -- GLOBAL TESTING -- 
 1. all bank sms test
 2. all upi sms
-
 
 
 -- WEB VERSION -- 
 1. view_device button by android id & form_code
 2. throw new Error(`❌ sim_sub_id ${sim_sub_id} does not match sim1 or sim2 for device id ${device.id}.`);
 
+
+
 https://nextjs.org/docs/pages/guides/custom-server
-
-
 #npm install -g pm2
 pm2 start npm --name "live" -- run start
 pm2 save
@@ -72,11 +93,14 @@ kill pid
 nodejs time set : process.env.TZ = 'Asia/Kolkata';
 server : sudo timedatectl set-timezone Asia/Kolkata
 
-
 https://socketio.github.io/socket.io-client-java/project-info.html
 
 
 ## Issue : 
   // ✅ Add this line
-maven { url = uri("https://jitpack.io") } in project settings.gradile.kts  for image SLider
+  dependencyResolutionManagement {
+        repositories {
+            maven { url = uri("https://jitpack.io") } in project settings.gradile.kts  for image SLider
+        }
+  }
 
